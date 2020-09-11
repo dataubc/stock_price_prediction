@@ -18,7 +18,7 @@ class AlphaRealtimeStock():
         symbol = self.symbol
         current = datetime.now()
         period2 = int(datetime.timestamp(current))
-        period1 = int(datetime.timestamp(current - timedelta(days=3)))
+        period1 = int(datetime.timestamp(current - timedelta(days=5)))
         includePrePost = 'true'
         url ='https://query1.finance.yahoo.com/v8/finance/chart/{}?symbol={}&period1={}&period2={}&interval={}' \
               '&includePrePost={}&events=div%7Csplit%7Cearn&lang=en-US&region=US&crumb={}&corsDomain=finance.yahoo.com'\
