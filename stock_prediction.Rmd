@@ -1,0 +1,25 @@
+---
+title: "stock"
+output:
+  github_document:
+    toc: true
+    toc_depth: 1
+    pandoc_args: --webtex
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE)
+library(tidyverse)
+library(broom)
+library(forecast)
+library(zoo)
+library(gridExtra)
+library(ggplot2)
+library(MLmetrics)
+```
+
+```{r}
+stock<- ts(read_csv('INO.csv')$Open, start = 1821)
+acf(stock)
+```
