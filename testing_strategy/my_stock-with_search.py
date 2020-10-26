@@ -1,8 +1,5 @@
 import pandas as pd
 import numpy as np
-import pickle
-from collections import Counter
-
 import datetime as dt
 import yfinance as yf  # for data
 from pandas_datareader import data as pdr
@@ -19,21 +16,12 @@ end_day = 24
 start = dt.datetime(start_year,start_month,start_day)
 now = dt.datetime(end_year,end_month,end_day)
 
-series_tickers = pickle.load(open("series_tickers.p", "rb" ))
+stocks = ['TSLA','NIO','QQQ']
 
-stock_returns = {}
-
-for stock, name in series_tickers.iteritems():
+for stock in stocks:
     
     # Calculating the ema
-    #df = pdr.get_data_yahoo(stock,start,now)
-    df = pdr.get_data_yahoo(stock,period = "7d",
-
-        # fetch data by interval (including intraday if period < 60 days)
-        # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
-        # (optional, default is '1d')
-        interval = "1m")
-    
+    df = pdr.get_data_yahoo(stock,start,now)
     emasUsed = [3,5,8,10,12,15,30,35,40,45,50,60]
     for ema in emasUsed:
         df['Ema_' + str(ema)] = round(df['Adj Close'].ewm(span = ema, adjust = False).mean(),2)
@@ -105,27 +93,23 @@ for stock, name in series_tickers.iteritems():
         maxL = 'undefined'
         ratio = 'inf'
 
-    if ng >0 and nl >0:
+    if ng >0 or nl >0:
         bettingAvg = ng/ng+nl
     else:
         bettingAvg = 0
-    stock_returns[stock] = totallR
     
     
-    
-#     print()
-#     print('Result for '+stock+" going back to "+str(df.index[0])+" Sample size: "+str(ng+nl)+"trades")
-#     print('EMAs used : ',str(emasUsed))
-#     print('Batting Avg : '+str(bettingAvg))
-#     print('Gain/loss ratio: ' + ratio)
-#     print('Avg gain: ' + str(avgGain))
-#     print('Avg loss: '+ str(avgLoss))
-#     print('Max return: '+ str(maxR))
-#     print('Max loss: ' + str(maxL))
-#     print('Total return over '+str(ng+nl)+' trades: '+str(totallR)+'%')
-#     print()
-d = Counter(stock_returns)
-print(d.most_common())
+    print()
+    print('Result for '+stock+" going back to "+str(df.index[0])+" Sample size: "+str(ng+nl)+"trades")
+    print('EMAs used : ',str(emasUsed))
+    print('Batting Avg : '+str(bettingAvg))
+    print('Gain/loss ratio: ' + ratio)
+    print('Avg gain: ' + str(avgGain))
+    print('Avg loss: '+ str(avgLoss))
+    print('Max return: '+ str(maxR))
+    print('Max loss: ' + str(maxL))
+    print('Total return over '+str(ng+nl)+' trades: '+str(totallR)+'%')
+    print()
 
 
 
