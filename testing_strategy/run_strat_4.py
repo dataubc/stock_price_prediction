@@ -41,22 +41,35 @@ for stock, name in series_tickers.iteritems():
         # (optional, default is '1d')
         interval = "5m")
     
+    # calcuting indicators
+    
     emasUsed = [26,50]
     for ema in emasUsed:
         df['Ema_' + str(ema)] = round(df['Adj Close'].ewm(span = ema, adjust = False).mean(),2)
+        df['Middle Band'] =df['Adj Close'].rolling(window=20).mean()
+        df['Upper Band'] = df['Middle Band'] + 1.96*df['Close'].rolling(window=20).std()
+        df['Lower Band'] = df['Middle Band'] - 1.96*df['Close'].rolling(window=20).std()
+        df['status_lower'] = np.where(df['Close'] < df['Lower Band'],'below_ballinger','normal')
+        df['status_upper'] = np.where(df['Close'] > df['Upper Band'],'above_ballinger','normal')
+    
+    df = df.iloc[20:,:] # remove the 20 nans row
         
     # calculating the cmin and cmax
     pos = 0
     num = 0
     percentchange = []
+    
+    # applying strategy
 
     for i in df.index:
-        cmin = df['Ema_26'][i]
+        status_lower = df['status_lower'][i]
         cmax = df['Ema_50'][i]
+        cmin = df['Ema_26'][i]
+
 
         close = df['Adj Close'][i]
 
-        if (cmin>cmax):
+        if(status_lower=='below_ballinger'):
            # print('red white blue')
             if pos ==0:
                 bp =close
@@ -132,7 +145,10 @@ for stock, name in series_tickers.iteritems():
 #     print('Total return over '+str(ng+nl)+' trades: '+str(totallR)+'%')
 #     print()
 d = Counter(stock_returns)
-print(d.most_common())
+x= d.most_common()
+
+df = pd.DataFrame(x,columns = ['Stock','Return'])
+df.to_csv('lstra_4_stocks.csv')
 
 
 
