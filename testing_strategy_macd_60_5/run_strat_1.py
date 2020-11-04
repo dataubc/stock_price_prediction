@@ -8,16 +8,6 @@ import yfinance as yf  # for data
 from pandas_datareader import data as pdr
 yf.pdr_override()
 
-start_year = 2020
-start_month = 4
-start_day = 1
-
-end_year = 2020
-end_month = 10
-end_day = 24
-
-start = dt.datetime(start_year,start_month,start_day)
-now = dt.datetime(end_year,end_month,end_day)
 
 series_tickers = pickle.load(open("series_tickers.p", "rb" ))
 df = pd.DataFrame(series_tickers).reset_index()
@@ -28,7 +18,7 @@ df_new = pd.DataFrame(list_of_lists, columns = ['Symbol','Security Name'])
 # new tickers
 series_tickers = pd.concat([df,df_new],axis = 0).set_index('Symbol').iloc[:,0]
 
-stock_returns = {}
+stock_ratio = {}
 
 for stock, name in series_tickers.iteritems():
     
@@ -41,34 +31,30 @@ for stock, name in series_tickers.iteritems():
         # (optional, default is '1d')
         interval = "5m")
     
-    # calcuting indicators
     
-    emasUsed = [26,50]
-    for ema in emasUsed:
-        df['Ema_' + str(ema)] = round(df['Adj Close'].ewm(span = ema, adjust = False).mean(),2)
-        df['Middle Band'] =df['Adj Close'].rolling(window=20).mean()
-        df['Upper Band'] = df['Middle Band'] + 1.96*df['Close'].rolling(window=20).std()
-        df['Lower Band'] = df['Middle Band'] - 1.96*df['Close'].rolling(window=20).std()
-        df['status_lower'] = np.where(df['Close'] < df['Lower Band'],'below_ballinger','normal')
-        df['status_upper'] = np.where(df['Close'] > df['Upper Band'],'above_ballinger','normal')
+    ShortEMA = df['Adj Close'].ewm(span=12, adjust=False).mean() #AKA Fast moving average
+    LongEMA = df['Adj Close'].ewm(span=26, adjust=False).mean() #AKA Slow moving average
+    MACD = ShortEMA - LongEMA
+    signal = MACD.ewm(span=9, adjust=False).mean()
+    df['macd'] = MACD
+    df['signal'] = signal
     
-    df = df.iloc[20:,:] # remove the 20 nans row
+
         
     # calculating the cmin and cmax
     pos = 0
     num = 0
     percentchange = []
     
-    # applying strategy
+    start_of_this_month = int((len(df.index[:])/60)*30)
 
-    for i in df.index:
-        status_upper = df['status_upper'][i]
-        status_lower = df['status_lower'][i]
-
+    for i in df.index[start_of_this_month:]:
+        cmin = df['macd'][i]
+        cmax = df['signal'][i]
 
         close = df['Adj Close'][i]
 
-        if(status_lower=='below_ballinger'):
+        if (cmin>cmax):
            # print('red white blue')
             if pos ==0:
                 bp =close
@@ -76,7 +62,7 @@ for stock, name in series_tickers.iteritems():
                 print('Buying now at'+ str(bp))
 
 
-        elif(status_upper=='upper_ballinger'):
+        elif(cmin<cmax):
             #print('blue white red')
             if pos ==1:
                 pos = 0
@@ -88,10 +74,10 @@ for stock, name in series_tickers.iteritems():
         if num ==df['Adj Close'].count()-1 and pos==1:
             pos = 0
             sp = close
-            print('Selling now at'+ str(bp))
+            print('Selling now at'+ str(sp))
             pc = (sp/bp-1)*100
             percentchange.append(pc)      
-        num +=1
+        num +=1         
    
      # evaluation
     gains = 0
@@ -122,13 +108,19 @@ for stock, name in series_tickers.iteritems():
     else:
         avgLoss = 0
         maxL = 'undefined'
-        ratio = 'inf'
+        ratio = '-inf'
 
     if ng >0 and nl >0:
-        bettingAvg = ng/ng+nl
+        bettingAvg = ng/(ng+nl)
     else:
         bettingAvg = 0
-    stock_returns[stock] = totallR
+    stock_ratio[stock] = {}
+    stock_ratio[stock]['ratio'] = ratio
+    stock_ratio[stock]['AvgGain'] =  avgGain
+    stock_ratio[stock]['BattingAvg'] = bettingAvg
+    
+    
+    
     
     
     
@@ -143,11 +135,9 @@ for stock, name in series_tickers.iteritems():
 #     print('Max loss: ' + str(maxL))
 #     print('Total return over '+str(ng+nl)+' trades: '+str(totallR)+'%')
 #     print()
-d = Counter(stock_returns)
-x= d.most_common()
-
-df = pd.DataFrame(x,columns = ['Stock','Return'])
-df.to_csv('lstra_2_stocks.csv')
+d = Counter(stock_ratio)
+df = pd.DataFrame(d).transpose()
+df.to_csv('lstra_1_stocks.csv')
 
 
 

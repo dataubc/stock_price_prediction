@@ -8,16 +8,6 @@ import yfinance as yf  # for data
 from pandas_datareader import data as pdr
 yf.pdr_override()
 
-start_year = 2020
-start_month = 4
-start_day = 1
-
-end_year = 2020
-end_month = 10
-end_day = 24
-
-start = dt.datetime(start_year,start_month,start_day)
-now = dt.datetime(end_year,end_month,end_day)
 
 series_tickers = pickle.load(open("series_tickers.p", "rb" ))
 df = pd.DataFrame(series_tickers).reset_index()
@@ -28,18 +18,18 @@ df_new = pd.DataFrame(list_of_lists, columns = ['Symbol','Security Name'])
 # new tickers
 series_tickers = pd.concat([df,df_new],axis = 0).set_index('Symbol').iloc[:,0]
 
-stock_returns = {}
+stock_ratio = {}
 
 for stock, name in series_tickers.iteritems():
     
     # Calculating the ema
     #df = pdr.get_data_yahoo(stock,start,now)
-    df = pdr.get_data_yahoo(stock,period = "60d",
+    df = pdr.get_data_yahoo(stock,period = "7d",
 
         # fetch data by interval (including intraday if period < 60 days)
         # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         # (optional, default is '1d')
-        interval = "5m")
+        interval = "1m")
     
     emasUsed = [26,50]
     for ema in emasUsed:
@@ -49,8 +39,10 @@ for stock, name in series_tickers.iteritems():
     pos = 0
     num = 0
     percentchange = []
+    
+    start_of_this_month = int((len(df.index[:])/60)*30)
 
-    for i in df.index:
+    for i in df.index:#[start_of_this_month:]:
         cmin = df['Ema_26'][i]
         cmax = df['Ema_50'][i]
 
@@ -76,10 +68,10 @@ for stock, name in series_tickers.iteritems():
         if num ==df['Adj Close'].count()-1 and pos==1:
             pos = 0
             sp = close
-            print('Selling now at'+ str(bp))
+            print('Selling now at'+ str(sp))
             pc = (sp/bp-1)*100
             percentchange.append(pc)      
-        num +=1
+        num +=1         
    
      # evaluation
     gains = 0
@@ -110,13 +102,19 @@ for stock, name in series_tickers.iteritems():
     else:
         avgLoss = 0
         maxL = 'undefined'
-        ratio = 'inf'
+        ratio = '-inf'
 
     if ng >0 and nl >0:
         bettingAvg = ng/ng+nl
     else:
         bettingAvg = 0
-    stock_returns[stock] = totallR
+    stock_ratio[stock] = {}
+    stock_ratio[stock]['ratio'] = ratio
+    stock_ratio[stock]['AvgGain'] =  avgGain
+    stock_ratio[stock]['BattingAvg'] = bettingAvg
+    
+    
+    
     
     
     
@@ -131,10 +129,8 @@ for stock, name in series_tickers.iteritems():
 #     print('Max loss: ' + str(maxL))
 #     print('Total return over '+str(ng+nl)+' trades: '+str(totallR)+'%')
 #     print()
-d = Counter(stock_returns)
-x= d.most_common()
-
-df = pd.DataFrame(x,columns = ['Stock','Return'])
+d = Counter(stock_ratio)
+df = pd.DataFrame(d).transpose()
 df.to_csv('lstra_1_stocks.csv')
 
 

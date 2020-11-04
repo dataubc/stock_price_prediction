@@ -29,7 +29,7 @@ for stock, name in series_tickers.iteritems():
         # fetch data by interval (including intraday if period < 60 days)
         # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         # (optional, default is '1d')
-        interval = "5m")
+        interval = "1m")
     
     # calcuting indicators
     
@@ -55,14 +55,14 @@ for stock, name in series_tickers.iteritems():
 
     for i in df.index[start_of_this_month:]:
         
-        status_lower = df['status_lower'][i]
+        status_upper = df['status_upper'][i]
         cmax = df['Ema_50'][i]
         cmin = df['Ema_26'][i]
 
 
         close = df['Adj Close'][i]
 
-        if(status_lower=='below_ballinger'):
+        if(cmin>cmax):
            # print('red white blue')
             if pos ==0:
                 bp =close
@@ -70,7 +70,7 @@ for stock, name in series_tickers.iteritems():
                 print('Buying now at'+ str(bp))
 
 
-        elif(cmin<cmax):
+        elif(status_upper=='above_ballinger'):
             #print('blue white red')
             if pos ==1:
                 pos = 0

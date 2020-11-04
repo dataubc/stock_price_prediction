@@ -5,7 +5,7 @@ from collections import Counter
 
 import datetime as dt
 import yfinance as yf  # for data
-from pandas_datareader import data as pdr
+from pandas_datareadetr import data as pdr
 yf.pdr_override()
 
 start_year = 2020
@@ -34,42 +34,29 @@ for stock, name in series_tickers.iteritems():
     
     # Calculating the ema
     #df = pdr.get_data_yahoo(stock,start,now)
-    df = pdr.get_data_yahoo(stock,period = "60d",
+    df = pdr.get_data_yahoo(stock,period = "35d",
 
         # fetch data by interval (including intraday if period < 60 days)
         # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         # (optional, default is '1d')
         interval = "5m")
     
-    # calcuting indicators
-    
     emasUsed = [26,50]
     for ema in emasUsed:
         df['Ema_' + str(ema)] = round(df['Adj Close'].ewm(span = ema, adjust = False).mean(),2)
-        df['Middle Band'] =df['Adj Close'].rolling(window=20).mean()
-        df['Upper Band'] = df['Middle Band'] + 1.96*df['Close'].rolling(window=20).std()
-        df['Lower Band'] = df['Middle Band'] - 1.96*df['Close'].rolling(window=20).std()
-        df['status_lower'] = np.where(df['Close'] < df['Lower Band'],'below_ballinger','normal')
-        df['status_upper'] = np.where(df['Close'] > df['Upper Band'],'above_ballinger','normal')
-    
-    df = df.iloc[20:,:] # remove the 20 nans row
         
     # calculating the cmin and cmax
     pos = 0
     num = 0
     percentchange = []
-    
-    # applying strategy
 
     for i in df.index:
-        status_lower = df['status_lower'][i]
-        cmax = df['Ema_50'][i]
         cmin = df['Ema_26'][i]
-
+        cmax = df['Ema_50'][i]
 
         close = df['Adj Close'][i]
 
-        if(status_lower=='below_ballinger'):
+        if (cmin>cmax):
            # print('red white blue')
             if pos ==0:
                 bp =close
@@ -148,7 +135,7 @@ d = Counter(stock_returns)
 x= d.most_common()
 
 df = pd.DataFrame(x,columns = ['Stock','Return'])
-df.to_csv('lstra_4_stocks.csv')
+df.to_csv('lstra_1_stocks.csv')
 
 
 

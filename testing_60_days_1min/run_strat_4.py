@@ -29,26 +29,40 @@ for stock, name in series_tickers.iteritems():
         # fetch data by interval (including intraday if period < 60 days)
         # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         # (optional, default is '1d')
-        interval = "5m")
+        interval = "1m")
+    
+    # calcuting indicators
     
     emasUsed = [26,50]
     for ema in emasUsed:
         df['Ema_' + str(ema)] = round(df['Adj Close'].ewm(span = ema, adjust = False).mean(),2)
+    df['Middle Band'] =df['Adj Close'].rolling(window=20).mean()
+    df['Upper Band'] = df['Middle Band'] + 1.96*df['Close'].rolling(window=20).std()
+    df['Lower Band'] = df['Middle Band'] - 1.96*df['Close'].rolling(window=20).std()
+    df['status_lower'] = np.where(df['Close'] < df['Lower Band'],'below_ballinger','normal')
+    df['status_upper'] = np.where(df['Close'] > df['Upper Band'],'above_ballinger','normal')
+    
+    df = df.iloc[20:,:] # remove the 20 nans row
         
     # calculating the cmin and cmax
     pos = 0
     num = 0
     percentchange = []
     
+    # applying strategy
+
     start_of_this_month = int((len(df.index[:])/60)*30)
 
     for i in df.index[start_of_this_month:]:
-        cmin = df['Ema_26'][i]
+        
+        status_lower = df['status_lower'][i]
         cmax = df['Ema_50'][i]
+        cmin = df['Ema_26'][i]
+
 
         close = df['Adj Close'][i]
 
-        if (cmin>cmax):
+        if(status_lower=='below_ballinger'):
            # print('red white blue')
             if pos ==0:
                 bp =close
@@ -71,7 +85,7 @@ for stock, name in series_tickers.iteritems():
             print('Selling now at'+ str(sp))
             pc = (sp/bp-1)*100
             percentchange.append(pc)      
-        num +=1         
+        num +=1
    
      # evaluation
     gains = 0
@@ -115,9 +129,6 @@ for stock, name in series_tickers.iteritems():
     
     
     
-    
-    
-    
 #     print()
 #     print('Result for '+stock+" going back to "+str(df.index[0])+" Sample size: "+str(ng+nl)+"trades")
 #     print('EMAs used : ',str(emasUsed))
@@ -131,7 +142,7 @@ for stock, name in series_tickers.iteritems():
 #     print()
 d = Counter(stock_ratio)
 df = pd.DataFrame(d).transpose()
-df.to_csv('lstra_1_stocks.csv')
+df.to_csv('lstra_4_stocks.csv')
 
 
 
